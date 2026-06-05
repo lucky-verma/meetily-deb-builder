@@ -96,7 +96,19 @@ jobs:
         env:
           BINDGEN_EXTRA_CLANG_ARGS: -isystem/usr/lib/gcc/x86_64-linux-gnu/13/include
         run: |
-          NO_STRIP=true pnpm tauri build --bundles deb
+          set +e
+          NO_STRIP=true pnpm tauri build --bundles deb --no-sign 2>&1 | tee tauri-build.log
+          status="${PIPESTATUS[0]}"
+          set -e
+
+          if [ "$status" -ne 0 ]; then
+            deb_count="$(find ../target/release/bundle/deb -maxdepth 1 -name 'meetily_*_amd64.deb' 2>/dev/null | wc -l)"
+            if [ "$deb_count" -gt 0 ] && grep -q 'A public key has been found, but no private key' tauri-build.log; then
+              echo "::warning::Tauri generated the Debian bundle, then failed updater signing. Continuing with the unsigned .deb artifact."
+            else
+              exit "$status"
+            fi
+          fi
 
       - name: Repack Debian package for /opt install
         id: repack
