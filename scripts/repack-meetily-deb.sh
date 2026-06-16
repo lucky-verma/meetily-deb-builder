@@ -97,10 +97,20 @@ cat > "$PACKAGE_ROOT/usr/local/bin/meetily" <<'WRAPPER'
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_ROOT="/opt/meetily"
+APP_BASE="/opt/meetily"
+APP_ROOT="$APP_BASE"
+
+if [ -x "$APP_BASE/current/bin/meetily" ] && [ -x "$APP_BASE/current/bin/llama-helper" ]; then
+  APP_ROOT="$APP_BASE/current"
+fi
+
+if [ -d /usr/local/cuda/lib64 ]; then
+  export LD_LIBRARY_PATH="/usr/local/cuda/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+
 export PATH="$APP_ROOT/bin:$PATH"
 export MEETILY_LLAMA_HELPER="$APP_ROOT/bin/llama-helper"
-export RESOURCE_DIR="$APP_ROOT/lib/meetily"
+export RESOURCE_DIR="$APP_BASE/lib/meetily"
 
 exec "$APP_ROOT/bin/meetily" "$@"
 WRAPPER
